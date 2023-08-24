@@ -16,13 +16,13 @@ echo ">>> osmosisd q wasm contract-state smart $contract_address $msg"
 $OSMOSISD q wasm contract-state smart $contract_address "$msg"
 sleep 1
 
-printf "\REDEMPTION_RATE\n"
+printf "\nREDEMPTION_RATE\n"
 msg='{ "redemption_rate" : { "denom": "'$STOSMO_IBC_DENOM'" } }'
 echo ">>> osmosisd q wasm contract-state smart $contract_address $msg"
 $OSMOSISD q wasm contract-state smart $contract_address "$msg"
 sleep 1
 
-printf "\REDEMPTION_RATES\n"
+printf "\nREDEMPTION_RATES\n"
 msg='{ "historical_redemption_rates" : { "denom": "'$STOSMO_IBC_DENOM'" } }'
 echo ">>> osmosisd q wasm contract-state smart $contract_address $msg"
 $OSMOSISD q wasm contract-state smart $contract_address "$msg"
