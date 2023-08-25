@@ -11,8 +11,7 @@ value=${VALUE:-value1}
 
 attributes=$(cat << EOF | base64
 {
-    "sttoken_denom": "stuosmo",
-    "native_token_denom": "ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518"
+    "sttoken_denom": "stuosmo"
 }
 EOF
 )
