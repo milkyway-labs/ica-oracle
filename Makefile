@@ -22,9 +22,9 @@ build-debug:
 
 build-optimized:
 	docker run --rm -v "$(CURDIR)":/code \
-		--mount type=volume,source="$(notdir $(CURDIR))_cache",target=/code/target \
+		--mount type=volume,source="$(notdir $(CURDIR))_cache",target=/target \
 		--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-		cosmwasm/rust-optimizer:0.12.13
+		cosmwasm/rust-optimizer:0.14.0
 
 validate:
 	cosmwasm-check ./artifacts/ica_oracle.wasm
