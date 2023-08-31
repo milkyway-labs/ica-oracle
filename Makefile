@@ -30,11 +30,11 @@ validate:
 	cosmwasm-check ./artifacts/ica_oracle.wasm
 
 # Uploads the contract to osmosis
-store-contract: 
+store-contract:
 	@STRIDE_HOME=$(STRIDE_HOME) bash scripts/store_contract.sh
 
 # Instantiates the contract directly with the osmosis dockernet validator as the admin
-instantiate-contract: 
+instantiate-contract:
 	@STRIDE_HOME=$(STRIDE_HOME) bash scripts/instantiate_contract.sh
 
 # Adds a metric directly to the contract from the osmosis dockernet validator
