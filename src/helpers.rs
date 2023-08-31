@@ -1,8 +1,7 @@
 use crate::ContractError;
-use regex::Regex;
 use sha2::{Digest, Sha256};
 
-const CHANNEL_REGEX: &str = r"^channel-\d+$";
+const CHANNEL_ID_PERFIX: &str = "channel";
 const TRANSFER_PORT_ID: &str = "transfer";
 
 /// follows cosmos SDK validation logic where denoms can be 3 - 128 characters long
@@ -38,12 +37,24 @@ pub fn validate_native_denom(denom: &str) -> Result<(), ContractError> {
 
 // Validates that the channel ID is of the form `channel-N`
 pub fn validate_channel_id(channel_id: &str) -> Result<(), ContractError> {
-    let re = Regex::new(CHANNEL_REGEX).unwrap();
-    if !re.is_match(channel_id) {
+    let Some((prefix, id)) = channel_id.split_once('-') else {
+        return Err(ContractError::InvalidChannelID {
+            channel_id: channel_id.to_string(),
+        });
+    };
+
+    if prefix != CHANNEL_ID_PERFIX {
         return Err(ContractError::InvalidChannelID {
             channel_id: channel_id.to_string(),
         });
     }
+
+    if id.parse::<u64>().is_err() {
+        return Err(ContractError::InvalidChannelID {
+            channel_id: channel_id.to_string(),
+        });
+    }
+
     Ok(())
 }
 
