@@ -1,5 +1,4 @@
 use crate::error::ContractError;
-use crate::helpers::{denom_trace_to_hash, validate_native_denom};
 use crate::state::{
     History, Metric, MetricType, RedemptionRate, RedemptionRateAttributes, CONFIG, METRICS,
     REDEMPTION_RATES,
@@ -72,34 +71,37 @@ pub fn post_metric(
                 });
             };
 
-            // Get the transfer channel ID between the oracle and controller chain,
-            // as defined on the oracle chain
-            let transfer_channel_id = match config.transfer_channel_id {
-                Some(channel_id) => channel_id,
-                None => return Err(ContractError::MissingTransferChannelID {}),
-            };
-
-            // Convert the stToken denom to the ibc denom as it lives on the oracle
             let sttoken_denom = attributes.sttoken_denom.clone();
-            validate_native_denom(&sttoken_denom)?;
 
-            let sttoken_ibc_denom = denom_trace_to_hash(&sttoken_denom, &transfer_channel_id)?;
+            // the contract is deployed on the same chain
+            // // Get the transfer channel ID between the oracle and controller chain,
+            // // as defined on the oracle chain
+            // let transfer_channel_id = match config.transfer_channel_id {
+            //     Some(channel_id) => channel_id,
+            //     None => return Err(ContractError::MissingTransferChannelID {}),
+            // };
+
+            // // Convert the stToken denom to the ibc denom as it lives on the oracle
+            // let sttoken_denom = attributes.sttoken_denom.clone();
+            // validate_native_denom(&sttoken_denom)?;
+
+            // let sttoken_ibc_denom = denom_trace_to_hash(&sttoken_denom, &transfer_channel_id)?;
 
             // Store the redemption rate in the redemption rate table
             let redemption_rate_value = Decimal::from_str(&new_metric.value)?;
             let new_redemption_rate = RedemptionRate {
-                denom: sttoken_ibc_denom.clone(),
+                denom: sttoken_denom.clone(),
                 redemption_rate: redemption_rate_value,
                 update_time: new_metric.update_time,
             };
 
             let mut redemption_rate_history =
-                match REDEMPTION_RATES.may_load(deps.storage, &sttoken_ibc_denom)? {
+                match REDEMPTION_RATES.may_load(deps.storage, &sttoken_denom)? {
                     Some(history) => history,
                     None => History::<RedemptionRate>::default(),
                 };
             redemption_rate_history.add(new_redemption_rate);
-            REDEMPTION_RATES.save(deps.storage, &sttoken_ibc_denom, &redemption_rate_history)?;
+            REDEMPTION_RATES.save(deps.storage, &sttoken_denom, &redemption_rate_history)?;
         }
         MetricType::Other(_) => {}
     }
