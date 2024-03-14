@@ -1,5 +1,5 @@
-use crate::msg::{Metrics, RedemptionRateResponse, RedemptionRates};
 use crate::state::{Metric, METRICS, REDEMPTION_RATES};
+use crate::msg::{Metrics, RedemptionRateResponse, RedemptionRates, PurchaseRateResponse};
 use cosmwasm_std::{Binary, Deps, Order, StdError, StdResult};
 
 /// Returns the most up-to-date metric for all metrics stored
@@ -80,4 +80,30 @@ pub fn get_historical_redemption_rates(
         None => redemption_rates_history.get_all(),
     };
     Ok(RedemptionRates { redemption_rates })
+}
+
+/// Returns the purchase rate of a given stToken and the time that it was last updated (used for price oracles)
+pub fn get_latest_purchase_rate(
+    deps: Deps,
+    denom: String,
+    params: Option<Binary>,
+) -> StdResult<PurchaseRateResponse> {
+    // The params field of the redemption rate query should always be None
+    // It is included so that the query is at parity with other price oracles that
+    // may use it for things like TWAP
+    if params.is_some() {
+        return Err(StdError::generic_err(
+            "invalid query request - params must be None",
+        ));
+    }
+
+    let purchase_rates_history = REDEMPTION_RATES.load(deps.storage, &denom)?;
+
+    match purchase_rates_history.get_latest() {
+        Some(response) => Ok(PurchaseRateResponse {
+            purchase_rate: response.redemption_rate,
+            update_time: response.update_time,
+        }),
+        None => Err(StdError::generic_err("purchase rate not found")),
+    }
 }

@@ -92,6 +92,17 @@ pub enum QueryMsg {
         /// Optional limit on the number of entries to return
         limit: Option<u64>,
     },
+
+    /// Returns the purchase rate of an stToken
+    #[returns(PurchaseRateResponse)]
+    PurchaseRate {
+        /// The denom should be the ibc hash of an stToken as it lives on the oracle chain
+        denom: String,
+        /// Params should always be None, but was included in this query
+        /// to align with other price oracles that take additional parameters such as TWAP
+        params: Option<Binary>,
+    },
+
 }
 ```
 

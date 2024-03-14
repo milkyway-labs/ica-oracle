@@ -9,7 +9,7 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{Config, CONFIG};
 use crate::{execute, query};
 
-const CONTRACT_NAME: &str = "crates.io:stride-ica-oracle";
+const CONTRACT_NAME: &str = "crates.io:milkyway-oracle";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -90,6 +90,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         } => to_binary(&query::get_historical_redemption_rates(
             deps, denom, params, limit,
         )?),
+        QueryMsg::PurchaseRate { denom, params, .. } => {
+            to_binary(&query::get_latest_purchase_rate(deps, denom, params)?)
+        }
     }
 }
 
@@ -107,7 +110,7 @@ mod tests {
 
     use crate::error::ContractError;
     use crate::msg::{
-        ExecuteMsg, InstantiateMsg, Metrics, QueryMsg, RedemptionRateResponse, RedemptionRates,
+        ExecuteMsg, InstantiateMsg, Metrics, QueryMsg, RedemptionRateResponse, RedemptionRates, PurchaseRateResponse,
     };
     use crate::state::{Config, Metric, MetricType, RedemptionRate, RedemptionRateAttributes};
 
@@ -115,8 +118,6 @@ mod tests {
     const TRANSFER_CHANNEL_ID: &str = "channel-0";
 
     const STTOKEN_DENOM: &str = "stdenom";
-    const STTOKEN_IBC_DENOM: &str =
-        "ibc/975F1E9343A04E8A4B174D0B72C68CFE05FE3BCBE0B6F71EEE8A6EB325870D62";
 
     // Helper function to return the default mocked env, info and deps
     fn default_mock() -> (
@@ -179,7 +180,7 @@ mod tests {
     // Helper function to build a redemption rate object
     fn get_test_redemption_rate(value: &str, time: u64) -> RedemptionRate {
         RedemptionRate {
-            denom: STTOKEN_IBC_DENOM.to_string(),
+            denom: STTOKEN_DENOM.to_string(),
             redemption_rate: Decimal::from_str(value).unwrap(),
             update_time: time,
         }
@@ -300,16 +301,33 @@ mod tests {
 
         // Confirm the metric was added to the redemption rate store
         let query_redemption_rate_msg = QueryMsg::RedemptionRate {
-            denom: STTOKEN_IBC_DENOM.to_string(),
+            denom: STTOKEN_DENOM.to_string(),
             params: None,
         };
-        let resp = query(deps.as_ref(), env, query_redemption_rate_msg).unwrap();
+        let resp = query(deps.as_ref(), env.clone(), query_redemption_rate_msg).unwrap();
         let redemption_rate_response: RedemptionRateResponse = from_binary(&resp).unwrap();
         let expected_redemption_rate = Decimal::one();
         assert_eq!(
             redemption_rate_response,
             RedemptionRateResponse {
                 redemption_rate: expected_redemption_rate,
+                update_time: 1
+            }
+        );
+
+
+        // Confirm the metric was added to the purchase rate store
+        let query_purchase_rate_msg = QueryMsg::PurchaseRate {
+            denom: STTOKEN_DENOM.to_string(),
+            params: None,
+        };
+        let resp = query(deps.as_ref(), env, query_purchase_rate_msg).unwrap();
+        let purchase_rate_response: PurchaseRateResponse = from_binary(&resp).unwrap();
+        let expected_purchase_rate = Decimal::one();
+        assert_eq!(
+            purchase_rate_response,
+            PurchaseRateResponse {
+                purchase_rate: expected_purchase_rate,
                 update_time: 1
             }
         );
