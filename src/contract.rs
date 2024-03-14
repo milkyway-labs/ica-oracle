@@ -93,6 +93,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::PurchaseRate { denom, params, .. } => {
             to_binary(&query::get_latest_purchase_rate(deps, denom, params)?)
         }
+        QueryMsg::HistoricalPurchaseRates {
+            denom,
+            params,
+            limit,
+            ..
+        } => to_binary(&query::get_historical_purchase_rates(
+            deps, denom, params, limit,
+        )?),
     }
 }
 
@@ -110,9 +118,9 @@ mod tests {
 
     use crate::error::ContractError;
     use crate::msg::{
-        ExecuteMsg, InstantiateMsg, Metrics, QueryMsg, RedemptionRateResponse, RedemptionRates, PurchaseRateResponse,
+        ExecuteMsg, InstantiateMsg, Metrics, QueryMsg, RedemptionRateResponse, RedemptionRates, PurchaseRateResponse, PurchaseRates
     };
-    use crate::state::{Config, Metric, MetricType, RedemptionRate, RedemptionRateAttributes};
+    use crate::state::{Config, Metric, MetricType, RedemptionRate, RedemptionRateAttributes, PurchaseRate, PurchaseRateAttributes};
 
     const ADMIN_ADDRESS: &str = "admin";
     const TRANSFER_CHANNEL_ID: &str = "channel-0";
@@ -178,10 +186,38 @@ mod tests {
     }
 
     // Helper function to build a redemption rate object
+    // The time field is used for both the time and the block_height
+    // It uses a generic denom and ibc/denom
+    fn get_test_purchase_rate_metric(key: &str, value: &str, time: u64) -> Metric {
+        let purchase_rate_attributes = PurchaseRateAttributes {
+            sttoken_denom: STTOKEN_DENOM.to_string(),
+        };
+        let purchase_rate_attributes = Some(to_binary(&purchase_rate_attributes).unwrap());
+
+        Metric {
+            key: key.to_string(),
+            value: value.to_string(),
+            metric_type: MetricType::PurchaseRate {},
+            update_time: time,
+            block_height: time,
+            attributes: purchase_rate_attributes,
+        }
+    }
+
+    // Helper function to build a redemption rate object
     fn get_test_redemption_rate(value: &str, time: u64) -> RedemptionRate {
         RedemptionRate {
             denom: STTOKEN_DENOM.to_string(),
             redemption_rate: Decimal::from_str(value).unwrap(),
+            update_time: time,
+        }
+    }
+
+    // Helper function to build a purchase rate object
+    fn get_test_purchase_rate(value: &str, time: u64) -> PurchaseRate {
+        PurchaseRate {
+            denom: STTOKEN_DENOM.to_string(),
+            purchase_rate: Decimal::from_str(value).unwrap(),
             update_time: time,
         }
     }
@@ -314,14 +350,47 @@ mod tests {
                 update_time: 1
             }
         );
+    }
 
+    #[test]
+    fn test_post_purchase_rate_metric() {
+        // Instantiate contract
+        let (mut deps, env, info) = default_instantiate();
 
-        // Confirm the metric was added to the purchase rate store
+        // Post a metric
+        let metric = get_test_purchase_rate_metric("key1", "1", 1);
+        let post_msg = get_post_metric_msg(&metric);
+
+        let resp = execute(deps.as_mut(), env.clone(), info, post_msg).unwrap();
+        let attributes_string = metric.attributes.clone().unwrap().to_string();
+        assert_eq!(
+            resp.attributes,
+            vec![
+                attr("action", "post_metric"),
+                attr("metric_key", "key1"),
+                attr("metric_value", "1"),
+                attr("metric_type", "purchase_rate"),
+                attr("metric_update_time", "1"),
+                attr("metric_block_height", "1"),
+                attr("metric_attributes", attributes_string),
+            ]
+        );
+
+        // Confirm the metric is present
+        let query_latest_msg = QueryMsg::Metric {
+            key: metric.key.clone(),
+        };
+
+        let resp = query(deps.as_ref(), env.clone(), query_latest_msg).unwrap();
+        let latest_response: Metric = from_binary(&resp).unwrap();
+        assert_eq!(latest_response, metric);
+
+        // Confirm the metric was added to the redemption rate store
         let query_purchase_rate_msg = QueryMsg::PurchaseRate {
             denom: STTOKEN_DENOM.to_string(),
             params: None,
         };
-        let resp = query(deps.as_ref(), env, query_purchase_rate_msg).unwrap();
+        let resp = query(deps.as_ref(), env.clone(), query_purchase_rate_msg).unwrap();
         let purchase_rate_response: PurchaseRateResponse = from_binary(&resp).unwrap();
         let expected_purchase_rate = Decimal::one();
         assert_eq!(
@@ -340,25 +409,30 @@ mod tests {
 
         // Build four metrics (all with the same key, and with a duplicate value) and post messages for each
         let metric_key = "key1";
+        let metric_key2 = "key2";
         let metric1 = get_test_redemption_rate_metric(metric_key, "1", 1);
         let metric2 = get_test_redemption_rate_metric(metric_key, "2", 2);
         let metric3 = get_test_redemption_rate_metric(metric_key, "3", 2); // replaces previous
         let metric4 = get_test_redemption_rate_metric(metric_key, "4", 3);
+        let metric5 = get_test_purchase_rate_metric(metric_key2, "5", 1);
 
         let rr1 = get_test_redemption_rate("1", 1);
         let rr2 = get_test_redemption_rate("3", 2);
         let rr3 = get_test_redemption_rate("4", 3);
+        let pr1 = get_test_purchase_rate("5", 1);
 
         let msg1 = get_post_metric_msg(&metric1);
         let msg2 = get_post_metric_msg(&metric2);
         let msg3 = get_post_metric_msg(&metric3);
         let msg4 = get_post_metric_msg(&metric4);
+        let msg5 = get_post_metric_msg(&metric5);
 
         // Execute each message out of order, and with msg2 coming before msg3
         execute(deps.as_mut(), env.clone(), info.clone(), msg2).unwrap();
         execute(deps.as_mut(), env.clone(), info.clone(), msg1).unwrap();
         execute(deps.as_mut(), env.clone(), info.clone(), msg3).unwrap(); // should get ignored bc duplicate time
-        execute(deps.as_mut(), env.clone(), info, msg4).unwrap();
+        execute(deps.as_mut(), env.clone(), info.clone(), msg4).unwrap();
+        execute(deps.as_mut(), env.clone(), info, msg5).unwrap();
 
         // Confirm metrics 1, 2 and 4 are preset and are sorted
         let msg = QueryMsg::HistoricalMetrics {
@@ -388,6 +462,35 @@ mod tests {
             }
         );
 
+
+        // Confirm metrics 1, 2 and 4 are preset and are sorted
+        let msg = QueryMsg::HistoricalMetrics {
+            key: metric_key2.to_string(),
+            limit: None,
+        };
+        let resp = query(deps.as_ref(), env.clone(), msg).unwrap();
+        let history_response: Metrics = from_binary(&resp).unwrap();
+        assert_eq!(
+            history_response,
+            Metrics {
+                metrics: vec![metric5.clone()]
+            }
+        );
+
+        // Check querying metrics with a limit
+        let msg = QueryMsg::HistoricalMetrics {
+            key: metric_key2.to_string(),
+            limit: Some(2),
+        };
+        let resp = query(deps.as_ref(), env.clone(), msg).unwrap();
+        let history_response: Metrics = from_binary(&resp).unwrap();
+        assert_eq!(
+            history_response,
+            Metrics {
+                metrics: vec![metric5]
+            }
+        );
+
         // Check the corresponding redemption rate query
         let msg = QueryMsg::HistoricalRedemptionRates {
             denom: rr1.denom.clone(),
@@ -409,12 +512,42 @@ mod tests {
             params: None,
             limit: Some(2),
         };
-        let resp = query(deps.as_ref(), env, msg).unwrap();
+        let resp = query(deps.as_ref(), env.clone(), msg).unwrap();
         let history_response: RedemptionRates = from_binary(&resp).unwrap();
         assert_eq!(
             history_response,
             RedemptionRates {
                 redemption_rates: vec![rr3, rr2]
+            }
+        );
+
+        // Check the corresponding redemption rate query
+        let msg = QueryMsg::HistoricalPurchaseRates {
+            denom: pr1.denom.clone(),
+            params: None,
+            limit: None,
+        };
+        let resp = query(deps.as_ref(), env.clone(), msg).unwrap();
+        let history_response: PurchaseRates = from_binary(&resp).unwrap();
+        assert_eq!(
+            history_response,
+            PurchaseRates {
+                purchase_rates: vec![pr1.clone()]
+            }
+        );
+
+        // Check the redemption rate query with a limit
+        let msg = QueryMsg::HistoricalPurchaseRates {
+            denom: pr1.denom.clone(),
+            params: None,
+            limit: Some(2),
+        };
+        let resp = query(deps.as_ref(), env, msg).unwrap();
+        let history_response: PurchaseRates = from_binary(&resp).unwrap();
+        assert_eq!(
+            history_response,
+            PurchaseRates {
+                purchase_rates: vec![pr1]
             }
         );
     }

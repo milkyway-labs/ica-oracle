@@ -26,6 +26,7 @@ pub struct Config {
 #[cw_serde]
 pub enum MetricType {
     RedemptionRate,
+    PurchaseRate,
     Other(String),
 }
 
@@ -33,6 +34,7 @@ impl fmt::Display for MetricType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             MetricType::RedemptionRate => write!(f, "redemption_rate"),
+            MetricType::PurchaseRate => write!(f, "purchase_rate"),
             MetricType::Other(inner) => write!(f, "{inner}"),
         }
     }
@@ -67,6 +69,13 @@ pub struct RedemptionRateAttributes {
     pub sttoken_denom: String,
 }
 
+/// For use in price oracles, the PurchaseRate metric requires the milkTia denom
+/// as it appears on the controller chain (e.g. `stuosmo`)
+#[cw_serde]
+pub struct PurchaseRateAttributes {
+    pub sttoken_denom: String,
+}
+
 /// The RedemptionRate struct represents the redemption rate of an stToken
 #[cw_serde]
 pub struct RedemptionRate {
@@ -79,6 +88,23 @@ pub struct RedemptionRate {
 }
 
 impl HasTime for RedemptionRate {
+    fn time(&self) -> u64 {
+        self.update_time
+    }
+}
+
+/// The PurchaseRate struct represents the redemption rate of an milkTia
+#[cw_serde]
+pub struct PurchaseRate {
+    /// stToken denom as an IBC hash, as it appears on the oracle chain
+    pub denom: String,
+    /// The redemption rate of the milkTia
+    pub purchase_rate: Decimal,
+    /// The unix timestamp representing when the redemption rate was last updated
+    pub update_time: u64,
+}
+
+impl HasTime for PurchaseRate {
     fn time(&self) -> u64 {
         self.update_time
     }
@@ -174,6 +200,10 @@ pub const METRICS: Map<&str, History<Metric>> = Map::new("metrics");
 /// The REDEMPTION_RATES store is dedicated to redemption rate metrics
 /// It is key'd on the stToken denom, and consists of a list (deque) of each redemption rate sorted by time
 pub const REDEMPTION_RATES: Map<&str, History<RedemptionRate>> = Map::new("redemption_rates");
+
+/// The PURCHASE_RATE store is dedicated to redemption rate metrics
+/// It is key'd on the stToken denom, and consists of a list (deque) of each redemption rate sorted by time
+pub const PURCHASE_RATES: Map<&str, History<PurchaseRate>> = Map::new("purchase_rates");
 
 #[cfg(test)]
 mod tests {

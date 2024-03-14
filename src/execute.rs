@@ -1,7 +1,8 @@
 use crate::error::ContractError;
 use crate::state::{
-    History, Metric, MetricType, RedemptionRate, RedemptionRateAttributes, CONFIG, METRICS,
-    REDEMPTION_RATES,
+    History, Metric, MetricType, RedemptionRate, RedemptionRateAttributes, 
+    PurchaseRate, PurchaseRateAttributes, CONFIG, METRICS,
+    REDEMPTION_RATES, PURCHASE_RATES,
 };
 use cosmwasm_std::{ensure, from_binary, Binary, Decimal, DepsMut, MessageInfo, Response};
 use std::str::FromStr;
@@ -102,6 +103,36 @@ pub fn post_metric(
                 };
             redemption_rate_history.add(new_redemption_rate);
             REDEMPTION_RATES.save(deps.storage, &sttoken_denom, &redemption_rate_history)?;
+        }
+        MetricType::PurchaseRate => {
+            // Deserialize the metric attributes to get the denom and base denom
+            let attributes: PurchaseRateAttributes = if let Some(attributes) = attributes {
+                from_binary(&attributes).map_err(|_| {
+                    ContractError::InvalidMetricMetadataAttributes {
+                        metric_type: new_metric.metric_type.clone(),
+                    }
+                })?
+            } else {
+                return Err(ContractError::MissingMetricMetadataAttributes {
+                    metric_type: new_metric.metric_type,
+                });
+            };
+
+            let sttoken_denom = attributes.sttoken_denom.clone();
+            let purchase_rate_value = Decimal::from_str(&new_metric.value)?;
+            let new_purchase_rate = PurchaseRate {
+                denom: sttoken_denom.clone(),
+                purchase_rate: purchase_rate_value,
+                update_time: new_metric.update_time,
+            };
+
+            let mut purchase_rate_history =
+                match PURCHASE_RATES.may_load(deps.storage, &sttoken_denom)? {
+                    Some(history) => history,
+                    None => History::<PurchaseRate>::default(),
+                };
+            purchase_rate_history.add(new_purchase_rate);
+            PURCHASE_RATES.save(deps.storage, &sttoken_denom, &purchase_rate_history)?;
         }
         MetricType::Other(_) => {}
     }

@@ -1,4 +1,4 @@
-use crate::state::{Metric, MetricType, RedemptionRate};
+use crate::state::{Metric, MetricType, RedemptionRate, PurchaseRate};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Binary, Decimal};
 
@@ -89,6 +89,19 @@ pub enum QueryMsg {
         /// to align with other price oracles that take additional parameters such as TWAP
         params: Option<Binary>,
     },
+
+    /// Returns a list of redemption rates over time for an stToken
+    #[returns(PurchaseRates)]
+    HistoricalPurchaseRates {
+        /// The denom should be the ibc hash of an stToken as it lives on the oracle chain
+        /// (e.g. ibc/{hash(transfer/channel-326/stuatom)} on Osmosis)
+        denom: String,
+        /// Params should always be None, but was included in this query
+        /// to align with other price oracles that take additional parameters such as TWAP
+        params: Option<Binary>,
+        /// Optional limit on the number of entries to return
+        limit: Option<u64>,
+    },
 }
 
 #[cw_serde]
@@ -111,4 +124,9 @@ pub struct PurchaseRateResponse {
 #[cw_serde]
 pub struct RedemptionRates {
     pub redemption_rates: Vec<RedemptionRate>,
+}
+
+#[cw_serde]
+pub struct PurchaseRates {
+    pub purchase_rates: Vec<PurchaseRate>,
 }
