@@ -340,7 +340,7 @@ mod tests {
             denom: STTOKEN_DENOM.to_string(),
             params: None,
         };
-        let resp = query(deps.as_ref(), env.clone(), query_redemption_rate_msg).unwrap();
+        let resp = query(deps.as_ref(), env, query_redemption_rate_msg).unwrap();
         let redemption_rate_response: RedemptionRateResponse = from_binary(&resp).unwrap();
         let expected_redemption_rate = Decimal::one();
         assert_eq!(

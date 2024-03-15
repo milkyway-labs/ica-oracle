@@ -103,6 +103,18 @@ pub enum QueryMsg {
         params: Option<Binary>,
     },
 
+    /// Returns a list of purchase rates over time for an stToken
+    #[returns(PurchaseRates)]
+    HistoricalPurchaseRates {
+        /// The denom should be the ibc hash of an stToken as it lives on the oracle chain
+        /// (e.g. ibc/{hash(transfer/channel-326/stuatom)} on Osmosis)
+        denom: String,
+        /// Params should always be None, but was included in this query
+        /// to align with other price oracles that take additional parameters such as TWAP
+        params: Option<Binary>,
+        /// Optional limit on the number of entries to return
+        limit: Option<u64>,
+    },
 }
 ```
 

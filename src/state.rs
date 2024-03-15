@@ -93,14 +93,14 @@ impl HasTime for RedemptionRate {
     }
 }
 
-/// The PurchaseRate struct represents the redemption rate of an milkTia
+/// The PurchaseRate struct represents the purchase rate of an milkTia
 #[cw_serde]
 pub struct PurchaseRate {
     /// stToken denom as an IBC hash, as it appears on the oracle chain
     pub denom: String,
-    /// The redemption rate of the milkTia
+    /// The purchase rate of the milkTia
     pub purchase_rate: Decimal,
-    /// The unix timestamp representing when the redemption rate was last updated
+    /// The unix timestamp representing when the purchase rate was last updated
     pub update_time: u64,
 }
 

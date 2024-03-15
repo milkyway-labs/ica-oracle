@@ -88,7 +88,7 @@ pub fn get_latest_purchase_rate(
     denom: String,
     params: Option<Binary>,
 ) -> StdResult<PurchaseRateResponse> {
-    // The params field of the redemption rate query should always be None
+    // The params field of the purchase rate query should always be None
     // It is included so that the query is at parity with other price oracles that
     // may use it for things like TWAP
     if params.is_some() {
