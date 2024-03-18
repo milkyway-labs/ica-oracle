@@ -1,5 +1,5 @@
-use crate::msg::{Metrics, RedemptionRateResponse, RedemptionRates};
-use crate::state::{Metric, METRICS, REDEMPTION_RATES};
+use crate::state::{Metric, METRICS, REDEMPTION_RATES, PURCHASE_RATES};
+use crate::msg::{Metrics, RedemptionRateResponse, RedemptionRates, PurchaseRateResponse, PurchaseRates};
 use cosmwasm_std::{Binary, Deps, Order, StdError, StdResult};
 
 /// Returns the most up-to-date metric for all metrics stored
@@ -80,4 +80,55 @@ pub fn get_historical_redemption_rates(
         None => redemption_rates_history.get_all(),
     };
     Ok(RedemptionRates { redemption_rates })
+}
+
+/// Returns the purchase rate of a given stToken and the time that it was last updated (used for price oracles)
+pub fn get_latest_purchase_rate(
+    deps: Deps,
+    denom: String,
+    params: Option<Binary>,
+) -> StdResult<PurchaseRateResponse> {
+    // The params field of the purchase rate query should always be None
+    // It is included so that the query is at parity with other price oracles that
+    // may use it for things like TWAP
+    if params.is_some() {
+        return Err(StdError::generic_err(
+            "invalid query request - params must be None",
+        ));
+    }
+
+    let purchase_rates_history = PURCHASE_RATES.load(deps.storage, &denom)?;
+
+    match purchase_rates_history.get_latest() {
+        Some(response) => Ok(PurchaseRateResponse {
+            purchase_rate: response.purchase_rate,
+            update_time: response.update_time,
+        }),
+        None => Err(StdError::generic_err("purchase rate not found")),
+    }
+}
+
+/// Returns the full purchase rate history of an milkTia, sorted by the time at which it was updated
+pub fn get_historical_purchase_rates(
+    deps: Deps,
+    denom: String,
+    params: Option<Binary>,
+    limit: Option<u64>,
+) -> StdResult<PurchaseRates> {
+    // The params field of the redemption rate query should always be None
+    // It is included so that the query is at parity with other price oracles that
+    // may use it for things like TWAP
+    if params.is_some() {
+        return Err(StdError::generic_err(
+            "invalid query request - params must be None",
+        ));
+    }
+
+    let purchase_rates_history = PURCHASE_RATES.load(deps.storage, &denom)?;
+
+    let purchase_rates = match limit {
+        Some(limit) => purchase_rates_history.get_latest_range(limit as usize),
+        None => purchase_rates_history.get_all(),
+    };
+    Ok(PurchaseRates { purchase_rates })
 }
