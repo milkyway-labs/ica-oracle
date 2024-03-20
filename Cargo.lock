@@ -376,13 +376,16 @@ dependencies = [
 
 [[package]]
 name = "ica-oracle"
-version = "1.0.0"
+version = "1.0.2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus",
  "cw2",
  "hex",
+ "schemars",
+ "semver",
+ "serde",
  "sha2 0.10.7",
  "thiserror",
 ]
@@ -520,6 +523,12 @@ dependencies = [
  "subtle",
  "zeroize",
 ]
+
+[[package]]
+name = "semver"
+version = "1.0.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92d43fe69e652f3df9bdc2b85b2854a0825b86e4fb76bc44d945137d053639ca"
 
 [[package]]
 name = "serde"

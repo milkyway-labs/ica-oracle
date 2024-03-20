@@ -1,6 +1,6 @@
 [package]
 name = "ica-oracle"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["sampocs <sam@stridelabs.co>"]
 edition = "2021"
 
@@ -40,3 +40,6 @@ cw2 = "1.1.0"
 hex = "0.4.3"
 sha2 = "0.10.7"
 thiserror = "1.0.47"
+semver = "1.0.20"
+schemars = "0.8.12"
+serde = "1.0.155"

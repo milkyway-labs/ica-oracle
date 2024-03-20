@@ -1,6 +1,8 @@
 use crate::state::{Metric, MetricType, RedemptionRate};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Binary, Decimal};
+use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -96,3 +98,11 @@ pub struct RedemptionRateResponse {
 pub struct RedemptionRates {
     pub redemption_rates: Vec<RedemptionRate>,
 }
+
+#[cw_serde]
+pub struct PurchaseRates {
+    pub purchase_rates: Vec<PurchaseRate>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct MigrateMsg {}
