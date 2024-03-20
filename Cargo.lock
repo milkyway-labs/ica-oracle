@@ -376,16 +376,14 @@ dependencies = [
 
 [[package]]
 name = "ica-oracle"
-version = "1.0.2"
+version = "1.0.1"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus",
  "cw2",
  "hex",
- "schemars",
  "semver",
- "serde",
  "sha2 0.10.7",
  "thiserror",
 ]
