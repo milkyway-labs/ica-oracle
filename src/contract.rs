@@ -2,10 +2,11 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
+use semver::Version;
 
 use crate::error::ContractError;
 use crate::helpers::validate_channel_id;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, MigrateMsg};
 use crate::state::{Config, CONFIG};
 use crate::{execute, query};
 
@@ -103,6 +104,39 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         )?),
     }
 }
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
+    let current_version = cw2::get_contract_version(deps.storage)?;
+    if &CONTRACT_NAME != &current_version.contract.as_str() {
+        return Err(ContractError::InvalidContract {});
+    }
+
+    let version: Version = current_version
+        .version
+        .parse()
+        .map_err(|_| ContractError::InvalidContractVersion {})?;
+    let new_version: Version = CONTRACT_VERSION
+        .parse()
+        .map_err(|_| ContractError::InvalidContractVersion {})?;
+
+    // current version not launchpad v2
+    if version > new_version {
+        return Err(ContractError::InvalidContractVersion {});
+    }
+    // if same version return
+    if version == new_version {
+        return Err(ContractError::InvalidContractVersion {});
+    }
+
+    // migrate data
+    // none
+
+    // set new contract version
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    Ok(Response::new())
+}
+
 
 #[cfg(test)]
 mod tests {

@@ -130,3 +130,6 @@ pub struct RedemptionRates {
 pub struct PurchaseRates {
     pub purchase_rates: Vec<PurchaseRate>,
 }
+
+#[cw_serde]
+pub struct MigrateMsg {}

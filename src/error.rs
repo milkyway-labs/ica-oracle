@@ -28,4 +28,10 @@ pub enum ContractError {
 
     #[error("The denom for the redemption rate metric must not be an IBC denom, {denom} provided")]
     InvalidRedemptionRateDenom { denom: String },
+
+    #[error("Cannot upgrade to a different contract")]
+    InvalidContract {},
+
+    #[error("Invalid contract version")]
+    InvalidContractVersion {},
 }
